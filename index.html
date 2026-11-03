@@ -202,7 +202,7 @@ function capOf(st, out) {
   if (st === 'clinic') return c.capBase;
   const m = toMin(out);
   if (m == null) return c.capBase;
-  return Math.min(c.capMax, c.capBase + Math.max(0, m - c.endHour * 60));
+  return Math.min(c.capMax, c.capBase + 60 * Math.max(0, Math.floor(m / 60) - c.endHour));
 }
 function minsOf(counts) { return S.M.acts.reduce((s, a) => s + (Number(counts[a.row]) || 0) * a.std, 0); }
 function level(min, cap) { return min > cap ? 'over' : (min > cap - S.M.cfg.near ? 'near' : 'ok'); }

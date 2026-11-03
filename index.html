@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#cfe3ff">
+<title>บันทึกงาน P4P</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mali:wght@500;600;700&family=Prompt:wght@400;500;600&display=swap" rel="stylesheet">
+<script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+  :root {
+    --sky:#e8f2ff; --sky2:#cfe3ff; --blue:#6ea8f0; --blue-d:#3f7fd6;
+    --blush:#ffeef4; --pink:#ffc7da; --pink-d:#e8799f; --lav:#efeaff; --lav-d:#7a5bd6;
+    --ink:#3b4660; --muted:#8a94ad; --line:#e6ebf5; --card:#ffffff;
+    --ok:#3dbb8a; --ok-bg:#e3f7ee; --bad:#e2637d; --bad-bg:#ffe8ed; --warn:#c27a22; --warn-bg:#fff1df;
+    --r:20px; --shadow:0 6px 20px rgba(110,140,200,.14);
+  }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { margin:0; }
+  body { font:16px/1.5 "Prompt", system-ui, sans-serif; color:var(--ink);
+    background:linear-gradient(180deg, var(--sky) 0%, #f6f9ff 40%, var(--blush) 100%) fixed; min-height:100vh; }
+  button, input { font:inherit; color:inherit; }
+  button { cursor:pointer; }
+  header { position:sticky; top:0; z-index:5; padding:14px 16px 12px;
+    background:linear-gradient(120deg, rgba(207,227,255,.92), rgba(255,215,229,.92));
+    backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); border-bottom:1px solid rgba(255,255,255,.7); }
+  .top { max-width:560px; margin:0 auto; }
+  .hello { font-size:13px; color:var(--muted); line-height:1.2; }
+  .hello b { display:block; font-family:"Mali", sans-serif; font-size:19px; color:var(--ink); }
+  main { max-width:560px; margin:0 auto; padding:16px 16px 120px; }
+  h2 { font-family:"Mali", sans-serif; font-size:22px; margin:0; }
+  h3 { font-family:"Mali", sans-serif; font-size:18px; margin:0; }
+  .muted { color:var(--muted); } .sm { font-size:13px; }
+  .card { background:var(--card); border-radius:var(--r); padding:16px; box-shadow:var(--shadow); margin-bottom:12px; }
+  .btn { width:100%; border:none; border-radius:16px; padding:14px; font-size:16px; font-weight:600; }
+  .btn:disabled { opacity:.5; }
+  .btn-main { background:linear-gradient(120deg, var(--blue) 0%, #a59cf0 60%, var(--pink-d) 100%); color:#fff; box-shadow:0 8px 20px rgba(130,130,230,.3); }
+  .btn-soft { background:var(--sky); color:var(--blue-d); }
+  #toast { position:fixed; left:16px; right:16px; top:calc(12px + env(safe-area-inset-top)); z-index:30; margin:0 auto; max-width:520px;
+    background:var(--ink); color:#fff; padding:13px 16px; border-radius:16px; text-align:center; font-size:14px;
+    box-shadow:0 10px 24px rgba(40,50,80,.25); opacity:0; transform:translateY(-16px); transition:.2s; pointer-events:none; }
+  #toast.show { opacity:1; transform:none; } #toast.bad { background:var(--bad); }
+  .loading { text-align:center; padding:60px 0; color:var(--muted); }
+  .loading .blob { width:54px; height:54px; margin:0 auto 12px; border-radius:50%; background:linear-gradient(135deg, var(--sky2), var(--pink)); animation:pulse 1.2s infinite ease-in-out; }
+  @keyframes pulse { 50% { transform:scale(.8); opacity:.6; } }
+
+  /* สรุปเดือน */
+  .sum { background:linear-gradient(135deg, #8ebcf7 0%, #b9a8f2 55%, #f7a8c6 100%); color:#fff; border-radius:24px; padding:16px; box-shadow:0 12px 28px rgba(140,140,230,.3); margin-bottom:14px; }
+  .mbar { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .mbar button { border:none; width:40px; height:40px; border-radius:14px; background:rgba(255,255,255,.28); color:#fff; font-size:20px; }
+  .mbar h2 { color:#fff; font-size:20px; text-align:center; }
+  .pts { margin-top:12px; display:flex; align-items:baseline; gap:6px; flex-wrap:wrap; }
+  .pts .big { font-family:"Mali", sans-serif; font-size:38px; line-height:1; }
+  .pts .of { opacity:.9; }
+  .bar { height:8px; background:rgba(255,255,255,.3); border-radius:99px; margin:10px 0 4px; overflow:hidden; }
+  .bar i { display:block; height:100%; background:#fff; border-radius:99px; }
+  .gap { font-size:14px; opacity:.95; }
+  .pills { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+  .pill { font-size:12px; border-radius:999px; padding:3px 10px; background:rgba(255,255,255,.25); }
+  .pill.bad { background:#fff; color:var(--bad); font-weight:600; }
+  .sum .tools { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }
+  .sum .tools button { border:none; border-radius:14px; padding:10px; background:rgba(255,255,255,.92); color:var(--blue-d); font-weight:600; font-size:14px; }
+
+  /* ปฏิทิน */
+  .cal { display:grid; grid-template-columns:repeat(7, minmax(0,1fr)); gap:5px; }
+  .cal .dw { font-size:12px; color:var(--muted); text-align:center; }
+  .cell { border:1.5px solid var(--line); background:#fff; border-radius:12px; min-height:52px; padding:3px 1px; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .cell b { font-size:15px; line-height:1.2; font-weight:600; }
+  .cell small { font-size:10.5px; line-height:1.2; color:var(--muted); }
+  .cell.off { background:transparent; border-style:dashed; color:var(--muted); }
+  .cell.todo { border-style:dashed; border-color:var(--pink); }
+  .cell.future { background:transparent; color:var(--muted); }
+  .cell.ok { background:var(--ok-bg); border-color:transparent; } .cell.ok small { color:var(--ok); }
+  .cell.near { background:var(--warn-bg); border-color:transparent; } .cell.near small { color:var(--warn); }
+  .cell.over { background:var(--bad-bg); border-color:transparent; } .cell.over small { color:var(--bad); font-weight:600; }
+  .cell.leave { background:var(--lav); border-color:transparent; } .cell.leave small { color:var(--lav-d); }
+  .cell.sel { outline:2.5px solid var(--blue-d); outline-offset:1px; }
+  .cell.today b { color:var(--pink-d); }
+  .legend { display:flex; flex-wrap:wrap; gap:10px; font-size:11px; color:var(--muted); margin-top:10px; }
+  .legend span::before { content:""; display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:4px; vertical-align:-1px; background:var(--c); }
+
+  /* วันที่เลือก */
+  .chips { display:flex; flex-wrap:wrap; gap:6px; margin:12px 0; }
+  .chip { border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:6px 12px; font-size:14px; }
+  .chip.on { border-color:var(--pink-d); background:var(--blush); color:var(--pink-d); font-weight:600; }
+  .outrow { display:flex; align-items:center; gap:10px; flex-wrap:wrap; background:var(--sky); border-radius:14px; padding:10px 12px; font-size:14px; }
+  .outrow input { border:1.5px solid var(--line); background:#fff; border-radius:12px; padding:6px 10px; font-size:16px; }
+  .meter { position:sticky; top:calc(64px + env(safe-area-inset-top)); z-index:4; display:flex; justify-content:space-between; align-items:center; gap:8px;
+    background:#fff; border:1.5px solid var(--line); border-radius:16px; padding:10px 14px; margin:12px 0 6px; }
+  .meter .v { font-family:"Mali", sans-serif; font-size:24px; }
+  .badge { font-size:13px; font-weight:600; border-radius:999px; padding:3px 10px; }
+  .badge.ok { background:var(--ok-bg); color:var(--ok); } .badge.near { background:var(--warn-bg); color:var(--warn); } .badge.over { background:var(--bad-bg); color:var(--bad); }
+  .grp { font-size:13px; font-weight:600; color:var(--pink-d); margin:16px 2px 4px; }
+  .act { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px; align-items:center; padding:10px 0; border-bottom:1px solid var(--line); }
+  .act:last-child { border-bottom:none; }
+  .act .nm { font-size:14px; line-height:1.35; }
+  .act .meta { font-size:11.5px; color:var(--muted); }
+  .step { display:flex; align-items:center; border:1.5px solid var(--line); border-radius:14px; overflow:hidden; background:#fff; }
+  .step button { width:40px; height:44px; border:none; background:var(--sky); color:var(--blue-d); font-size:20px; }
+  .step input { width:52px; height:44px; border:none; text-align:center; font-family:"Mali", sans-serif; font-size:20px; color:var(--blue-d); outline:none; }
+  .step.has { border-color:var(--blue); }
+  .note { background:var(--warn-bg); color:var(--warn); border-radius:14px; padding:10px 12px; font-size:13px; margin-top:10px; }
+  .empty { text-align:center; color:var(--muted); padding:22px 6px; }
+  .savebar { position:fixed; left:16px; right:16px; bottom:calc(14px + env(safe-area-inset-bottom)); z-index:15; max-width:520px; margin:0 auto; }
+  .savebar[hidden] { display:none; }
+</style>
+</head>
+<body>
+<header><div class="top">
+  <div class="hello" id="hello"><span>บันทึกงาน P4P</span><b>สวัสดีค่ะ 🌷</b></div>
+</div></header>
+<main id="app"><div class="loading"><div class="blob"></div>กำลังเปิดระบบ...</div></main>
+<div class="savebar" id="savebar" hidden></div>
+<div id="toast"></div>
+
+<script>
+const CONFIG = {
+  // LIFF ของระบบ P4P (สร้างใหม่ใน channel เดียวกับระบบส่งยอด)
+  LIFF_ID: '2012074647-Nag6Jhkj',
+  // URL เว็บแอปของ Apps Script "ระบบ P4P (หลังบ้าน)" (ลงท้ายด้วย /exec)
+  API_URL: 'https://script.google.com/macros/s/AKfycbyWrWNGWNZcJYhggM8-92oQSU0Y6Y8PTpu2tshLevTc9Vxno223RznpfcN9e8RxdFgNtg/exec'
+};
+const TH_MONTH = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+const TH_DOW = ['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.'];
+const STATUS = [
+  { k:'work', t:'ทำงาน' }, { k:'clinic', t:'ต่อคลินิกนอกเวลา' },
+  { k:'sick', t:'ลาป่วย', code:'ลป' }, { k:'personal', t:'ลากิจ', code:'ลก' }, { k:'vac', t:'ลาพักผ่อน', code:'Vac' },
+  { k:'off', t:'วันหยุดพิเศษ' }
+];
+const CODE2ST = { 'ลป':'sick', 'ลก':'personal', 'Vac':'vac' };
+const S = { idToken:'', today:'', ym:'', sel:0, M:null, edit:null, dirty:false, busy:false, sheetUrl:'' };
+const $app = document.getElementById('app');
+const $save = document.getElementById('savebar');
+
+// ---------- ตัวช่วย ----------
+function h(tag, props, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(props || {})) {
+    if (v === false || v == null) continue;
+    if (k === 'class') el.className = v;
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else el.setAttribute(k, v === true ? '' : v);
+  }
+  kids.flat(Infinity).forEach(c => { if (c != null && c !== false) el.append(c.nodeType ? c : document.createTextNode(String(c))); });
+  return el;
+}
+function toast(msg, bad, ms) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'show' + (bad ? ' bad' : '');
+  clearTimeout(toast.t); toast.t = setTimeout(() => { t.className = ''; }, ms || 2600);
+}
+function fmt(n, dp) { return Number(n || 0).toLocaleString('th-TH', { maximumFractionDigits: dp == null ? 2 : dp }); }
+// รับได้ทั้งเลขอารบิก เลขไทย และแถวตัวเลขของแป้นพิมพ์ไทย
+const DIG = { '๐':'0','๑':'1','๒':'2','๓':'3','๔':'4','๕':'5','๖':'6','๗':'7','๘':'8','๙':'9','ๅ':'1','/':'2','-':'3','ภ':'4','ถ':'5','ุ':'6','ึ':'7','ค':'8','ต':'9','จ':'0' };
+function digits(s) { let o = ''; for (const ch of String(s || '')) { const c = DIG[ch] || ch; if (/[0-9]/.test(c)) o += c; } return o; }
+function ymOf(d) { return d.slice(0, 7); }
+function shiftYm(ym, n) { const [y, m] = ym.split('-').map(Number); const d = new Date(y, m - 1 + n, 1); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
+function toMin(t) { const m = String(t || '').match(/^(\d{1,2})[:.](\d{2})$/); return m ? Number(m[1]) * 60 + Number(m[2]) : null; }
+function outToTime(s) { const m = String(s || '').match(/^(\d{1,2})[:.](\d{1,2})$/); return m ? m[1].padStart(2, '0') + ':' + m[2].padEnd(2, '0') : ''; }
+
+async function api(action, data) {
+  const res = await fetch(CONFIG.API_URL, { method: 'POST', body: JSON.stringify(Object.assign({ action, idToken: S.idToken }, data || {})) });
+  const j = await res.json();
+  if (!j.ok) throw new Error(j.error);
+  return j.data;
+}
+
+// ---------- เริ่มต้น ----------
+async function main() {
+  try {
+    if (/PASTE_/.test(CONFIG.API_URL + CONFIG.LIFF_ID)) throw new Error('ยังไม่ได้ใส่ LIFF_ID หรือ API_URL ในไฟล์ index.html');
+    await liff.init({ liffId: CONFIG.LIFF_ID });
+    if (!liff.isLoggedIn()) { liff.login({ redirectUri: location.href }); return; }
+    S.idToken = liff.getIDToken();
+    const d = await api('init');
+    S.today = d.today; S.sheetUrl = d.sheetUrl;
+    document.getElementById('hello').replaceChildren(h('span', {}, 'บันทึกงาน P4P'), h('b', {}, 'สวัสดี ' + ((d.me && d.me.name) || '') + ' 🌷'));
+    S.ym = ymOf(S.today); S.sel = Number(S.today.slice(8, 10));
+    await loadMonth();
+  } catch (e) {
+    $app.replaceChildren(h('div', { class: 'card', style: 'text-align:center' },
+      h('div', { style: 'font-size:42px' }, '😿'), h('h2', {}, 'เปิดระบบไม่สำเร็จ'),
+      h('p', { class: 'muted' }, e.message), h('p', { class: 'sm muted' }, 'ลองปิดหน้านี้แล้วเปิดใหม่จากเมนูใน LINE')));
+  }
+}
+async function loadMonth() {
+  $app.replaceChildren(h('div', { class: 'loading' }, h('div', { class: 'blob' }), 'กำลังโหลดเดือนนี้...'));
+  $save.hidden = true;
+  S.M = await api('month', { ym: S.ym });
+  if (!S.M.missing) { const n = S.M.days.length; if (S.sel > n) S.sel = n; startEdit(); }
+  draw();
+}
+
+// ---------- คำนวณ ----------
+function dayOf(d) { return S.M.days[d - 1]; }
+function isWeekend(day) { return day.dow === 'ส.' || day.dow === 'อา.'; }
+function isWorkSt(st) { return st === 'work' || st === 'clinic'; }
+function capOf(st, out) {
+  const c = S.M.cfg;
+  if (st === 'clinic') return c.capBase;
+  const m = toMin(out);
+  if (m == null) return c.capBase;
+  return Math.min(c.capMax, c.capBase + Math.max(0, m - c.endHour * 60));
+}
+function minsOf(counts) { return S.M.acts.reduce((s, a) => s + (Number(counts[a.row]) || 0) * a.std, 0); }
+function level(min, cap) { return min > cap ? 'over' : (min > cap - S.M.cfg.near ? 'near' : 'ok'); }
+
+function startEdit() {
+  const day = dayOf(S.sel);
+  let st = 'work';
+  if (CODE2ST[day.code]) st = CODE2ST[day.code];
+  else if (isWeekend(day)) st = 'off';
+  else if (day.hol) st = 'off';
+  else if (day.clinic) st = 'clinic';
+  const out = day.out ? outToTime(day.out) : (/^\d{1,2}[:.]\d{2}$/.test(day.code) ? outToTime(day.code) : '');
+  const counts = {};
+  S.M.acts.forEach(a => {
+    const v = day.counts[a.row];
+    counts[a.row] = v == null ? (a.routine && isWorkSt(st) && !isWeekend(day) ? 1 : 0) : v;
+  });
+  S.edit = { st, out, counts };
+  S.dirty = false;
+}
+
+// ---------- วาดหน้าจอ ----------
+function draw() {
+  if (S.M.missing) {
+    $app.replaceChildren(summary(), h('div', { class: 'card empty' }, 'เดือนนี้ยังไม่ถึง'));
+    $save.hidden = true; return;
+  }
+  $app.replaceChildren(summary(), calendar(), dayCard());
+  drawSave();
+}
+function summary() {
+  const [y, m] = S.ym.split('-').map(Number);
+  const prev = h('button', { 'aria-label': 'เดือนก่อน', onclick: () => go(shiftYm(S.ym, -1)) }, '‹');
+  const next = h('button', { 'aria-label': 'เดือนถัดไป', onclick: () => go(shiftYm(S.ym, 1)) }, '›');
+  const box = h('div', { class: 'sum' }, h('div', { class: 'mbar' }, prev, h('h2', {}, TH_MONTH[m - 1] + ' ' + (y + 543)), next));
+  if (S.M.missing) return box;
+  const pts = S.M.points, std = S.M.standard, diff = pts - std;
+  const over = S.M.days.filter(d => d.status === 'ทำงาน' && d.cap != null && d.total > d.cap).length;
+  const todo = S.M.days.filter(d => d.status === 'ทำงาน' && !d.entered).length;
+  box.append(
+    h('div', { class: 'pts' }, h('span', { class: 'big' }, fmt(pts, 1)), h('span', { class: 'of' }, '/ ' + fmt(std, 0) + ' แต้ม')),
+    h('div', { class: 'bar' }, h('i', { style: 'width:' + Math.min(100, std ? pts / std * 100 : 0) + '%' })),
+    h('div', { class: 'gap' }, diff >= 0 ? 'เกินมาตรฐาน ' + fmt(diff, 1) + ' แต้ม 🎉' : 'ขาดอีก ' + fmt(-diff, 1) + ' แต้ม'),
+    h('div', { class: 'pills' },
+      over ? h('span', { class: 'pill bad' }, 'เกินเพดาน ' + over + ' วัน') : h('span', { class: 'pill' }, 'ไม่มีวันเกินเพดาน'),
+      todo ? h('span', { class: 'pill' }, 'ยังไม่กรอก ' + todo + ' วัน') : null),
+    h('div', { class: 'tools' },
+      h('button', { onclick: exportXlsx }, '⬇️ ไฟล์ Excel'),
+      h('button', { onclick: () => openExt(S.sheetUrl + '#gid=' + S.M.gid) }, '📄 เปิดชีต')));
+  return box;
+}
+function calendar() {
+  const [y, m] = S.ym.split('-').map(Number);
+  const first = new Date(y, m - 1, 1).getDay();
+  const grid = h('div', { class: 'cal' }, ['อา','จ','อ','พ','พฤ','ศ','ส'].map(x => h('div', { class: 'dw' }, x)));
+  for (let i = 0; i < first; i++) grid.append(h('div'));
+  const isCur = S.ym === ymOf(S.today), tday = Number(S.today.slice(8, 10));
+  S.M.days.forEach(day => {
+    let cls = 'cell', lab = '';
+    if (CODE2ST[day.code]) { cls += ' leave'; lab = day.code; }
+    else if (day.status === 'หยุด') { cls += ' off'; lab = day.hol ? 'หยุด' : ''; }
+    else if (day.status === 'ยังไม่ถึง') { cls += ' future'; }
+    else if (day.status === 'ทำงาน') {
+      if (!day.entered) { cls += ' todo'; lab = '—'; }
+      else { cls += ' ' + level(day.total, day.cap); lab = day.total; }
+    }
+    if (isCur && day.d === tday) cls += ' today';
+    if (day.d === S.sel) cls += ' sel';
+    grid.append(h('button', { class: cls, onclick: () => pick(day.d), 'aria-label': 'วันที่ ' + day.d }, h('b', {}, day.d), h('small', {}, lab)));
+  });
+  return h('div', { class: 'card' }, grid, h('div', { class: 'legend' },
+    h('span', { style: '--c:var(--ok-bg)' }, 'ไม่ถึงเพดาน'), h('span', { style: '--c:var(--warn-bg)' }, 'ใกล้เพดาน'),
+    h('span', { style: '--c:var(--bad-bg)' }, 'เกินเพดาน'), h('span', { style: '--c:var(--lav)' }, 'ลา')));
+}
+function dayCard() {
+  const day = dayOf(S.sel), E = S.edit;
+  const [, m] = S.ym.split('-').map(Number);
+  const card = h('div', { class: 'card', id: 'daycard' }, h('h3', {}, (TH_DOW[new Date(Number(S.ym.slice(0, 4)), m - 1, S.sel).getDay()]) + ' ' + S.sel + ' ' + TH_MONTH[m - 1]));
+  if (isWeekend(day) && !CODE2ST[day.code]) {
+    card.append(h('div', { class: 'empty' }, 'เสาร์–อาทิตย์ ระบบนับเป็นวันหยุด'));
+    return card;
+  }
+  card.append(h('div', { class: 'chips' }, STATUS.map(s =>
+    h('button', { class: 'chip' + (E.st === s.k ? ' on' : ''), onclick: () => setStatus(s.k) }, s.t + (s.code ? ' (' + s.code + ')' : '')))));
+  if (!isWorkSt(E.st)) {
+    card.append(h('div', { class: 'empty' }, E.st === 'off' ? 'วันหยุดพิเศษ ไม่นับภาระงาน' : 'ใส่รหัส ' + STATUS.find(s => s.k === E.st).code + ' ลงแบบฟอร์มให้'));
+    return card;
+  }
+  if (E.st === 'clinic') card.append(h('div', { class: 'outrow' }, 'ต่อคลินิกนอกเวลา · เพดานคงที่ ' + S.M.cfg.capBase + ' นาที'));
+  else {
+    const t = h('input', { type: 'time', id: 'outT', value: E.out });
+    t.addEventListener('change', () => { E.out = t.value; mark(); paintMeter(); });
+    card.append(h('div', { class: 'outrow' }, h('label', { for: 'outT' }, 'เวลาสแกนออก'), t, h('span', { class: 'sm muted' }, 'ว่าง = ' + S.M.cfg.endHour + ':00')));
+  }
+  card.append(h('div', { class: 'meter', id: 'meter' }));
+  const row = a => {
+    const inp = h('input', { type: 'text', inputmode: 'numeric', autocomplete: 'off', value: E.counts[a.row], 'aria-label': a.name });
+    const box = h('div', { class: 'step' + (E.counts[a.row] > 0 ? ' has' : '') },
+      h('button', { 'aria-label': 'ลด', onclick: () => setCount(a, E.counts[a.row] - 1, inp, box) }, '−'), inp,
+      h('button', { 'aria-label': 'เพิ่ม', onclick: () => setCount(a, E.counts[a.row] + 1, inp, box) }, '+'));
+    inp.addEventListener('focus', () => inp.select());
+    inp.addEventListener('input', () => { const c = digits(inp.value); if (c !== inp.value) inp.value = c; setCount(a, Number(c || 0), null, box); });
+    return h('div', { class: 'act' }, h('div', {}, h('div', { class: 'nm' }, a.name.split('\n')[0]), h('div', { class: 'meta' }, a.unit + ' · ' + a.std + ' นาที × ' + a.weight)), box);
+  };
+  const counted = S.M.acts.filter(a => !a.routine), routine = S.M.acts.filter(a => a.routine);
+  if (counted.length) card.append(h('div', { class: 'grp' }, 'นับจำนวนวันนี้'), ...counted.map(row));
+  if (routine.length) card.append(h('div', { class: 'grp' }, 'กิจกรรมประจำ (ใส่ 1 ให้อัตโนมัติ)'), ...routine.map(row));
+  setTimeout(paintMeter);
+  return card;
+}
+function paintMeter() {
+  const el = document.getElementById('meter'); if (!el) return;
+  const E = S.edit, mn = minsOf(E.counts), cap = capOf(E.st, E.out), lv = level(mn, cap);
+  const msg = lv === 'over' ? 'เกิน ' + (mn - cap) + ' นาที' : 'เหลือ ' + (cap - mn) + ' นาที';
+  el.replaceChildren(h('div', {}, h('span', { class: 'v' }, mn), h('span', { class: 'muted' }, ' / ' + cap + ' นาที')), h('span', { class: 'badge ' + lv }, msg));
+}
+function drawSave() {
+  const day = S.M && !S.M.missing ? dayOf(S.sel) : null;
+  if (!day || (isWeekend(day) && !CODE2ST[day.code])) { $save.hidden = true; return; }
+  const label = S.busy ? 'กำลังบันทึก...' : (S.dirty ? 'บันทึกวันที่ ' + S.sel : (day.entered ? 'บันทึกแล้ว ✓' : 'บันทึกวันที่ ' + S.sel));
+  const b = h('button', { class: 'btn ' + (S.dirty || !day.entered ? 'btn-main' : 'btn-soft'), onclick: save }, label);
+  if (S.busy) b.disabled = true;
+  $save.replaceChildren(b); $save.hidden = false;
+}
+
+// ---------- การกระทำ ----------
+function mark() { if (!S.dirty) { S.dirty = true; drawSave(); } }
+function setCount(a, v, inp, box) {
+  v = Math.max(0, Math.floor(Number(v) || 0));
+  S.edit.counts[a.row] = v;
+  if (inp) inp.value = v;
+  if (box) box.classList.toggle('has', v > 0);
+  mark(); paintMeter();
+}
+function setStatus(k) {
+  const E = S.edit, was = E.st;
+  E.st = k;
+  if (isWorkSt(k) && !isWorkSt(was)) S.M.acts.forEach(a => { if (a.routine && !E.counts[a.row]) E.counts[a.row] = 1; });
+  mark(); draw();
+}
+async function pick(d) {
+  if (S.busy) return;
+  if (S.dirty) { const ok = await save(); if (!ok) return; }
+  S.sel = d; startEdit(); draw();
+  const c = document.getElementById('daycard'); if (c) c.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+async function go(ym) {
+  if (S.busy) return;
+  if (S.dirty) { const ok = await save(); if (!ok) return; }
+  S.ym = ym;
+  S.sel = ym === ymOf(S.today) ? Number(S.today.slice(8, 10)) : 1;
+  try { await loadMonth(); } catch (e) { toast(e.message, true, 4000); }
+}
+async function save() {
+  if (S.busy) return false;
+  S.busy = true; drawSave();
+  try {
+    const E = S.edit;
+    S.M = await api('saveDay', { ym: S.ym, day: S.sel, status: E.st, out: E.st === 'work' ? E.out : '', counts: E.counts });
+    startEdit(); S.busy = false; draw();
+    toast('บันทึกวันที่ ' + S.sel + ' แล้ว ✓');
+    return true;
+  } catch (e) {
+    S.busy = false; drawSave(); toast(e.message, true, 4500);
+    return false;
+  }
+}
+function openExt(u) { try { liff.openWindow({ url: u, external: true }); } catch (_) { window.open(u, '_blank'); } }
+async function exportXlsx(ev) {
+  const b = ev.currentTarget; b.disabled = true; const t = b.textContent; b.textContent = 'กำลังสร้างไฟล์...';
+  try {
+    if (S.dirty) await save();
+    const r = await api('export', { ym: S.ym });
+    toast('สร้างไฟล์ ' + r.name + ' ใน Google Drive แล้ว');
+    openExt(r.url);
+  } catch (e) { toast(e.message, true, 4500); }
+  b.disabled = false; b.textContent = t;
+}
+
+main();
+</script>
+</body>
+</html>

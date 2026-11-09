@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#cfe3ff">
-<title>บันทึกงาน P4P</title>
+<title>บันทึกงาน P4P หน่วยงาน</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Mali:wght@500;600;700&family=Prompt:wght@400;500;600&display=swap" rel="stylesheet">
@@ -87,7 +87,7 @@
   .chip.on { border-color:var(--pink-d); background:var(--blush); color:var(--pink-d); font-weight:600; }
   .outrow { display:flex; align-items:center; gap:10px; flex-wrap:wrap; background:var(--sky); border-radius:14px; padding:10px 12px; font-size:14px; }
   .outrow input { border:1.5px solid var(--line); background:#fff; border-radius:12px; padding:6px 10px; font-size:16px; }
-  .meter { position:sticky; top:calc(64px + env(safe-area-inset-top)); z-index:4; display:flex; justify-content:space-between; align-items:center; gap:8px;
+  .meter { position:sticky; top:calc(112px + env(safe-area-inset-top)); z-index:4; display:flex; justify-content:space-between; align-items:center; gap:8px;
     background:#fff; border:1.5px solid var(--line); border-radius:16px; padding:10px 14px; margin:12px 0 6px; }
   .meter .v { font-family:"Mali", sans-serif; font-size:24px; }
   .badge { font-size:13px; font-weight:600; border-radius:999px; padding:3px 10px; }
@@ -105,12 +105,31 @@
   .empty { text-align:center; color:var(--muted); padding:22px 6px; }
   .savebar { position:fixed; left:16px; right:16px; bottom:calc(14px + env(safe-area-inset-bottom)); z-index:15; max-width:520px; margin:0 auto; }
   .savebar[hidden] { display:none; }
+  .nav { max-width:560px; margin:10px auto 0; display:flex; gap:6px; }
+  .nav button { flex:1; border:none; border-radius:12px; padding:8px 6px; background:rgba(255,255,255,.6); color:var(--muted); font-size:14px; font-weight:600; position:relative; }
+  .nav button.on { background:#fff; color:var(--blue-d); box-shadow:0 2px 8px rgba(110,140,200,.18); }
+  .nav .dot { position:absolute; top:-6px; right:-2px; min-width:20px; height:20px; border-radius:99px; background:var(--bad); color:#fff; font-size:12px; line-height:20px; padding:0 6px; }
+  .field { display:flex; flex-direction:column; gap:6px; margin:12px 0; }
+  .field label { font-size:14px; color:var(--muted); }
+  .field select, .field input { border:1.5px solid var(--line); border-radius:12px; padding:12px; font-size:16px; background:#fff; width:100%; }
+  .li { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px; align-items:center; padding:12px 0; border-bottom:1px solid var(--line); }
+  .li:last-child { border-bottom:none; }
+  .li .nm { font-size:14px; line-height:1.35; } .li .meta { font-size:12px; color:var(--muted); }
+  .mini { border:none; border-radius:10px; padding:8px 12px; font-size:13px; font-weight:600; white-space:nowrap; }
+  .mini.add { background:var(--sky); color:var(--blue-d); } .mini.del { background:var(--bad-bg); color:var(--bad); }
+  .mini.ok { background:var(--ok-bg); color:var(--ok); } .mini.no { background:var(--line); color:var(--ink); }
+  .tag { display:inline-block; font-size:11px; font-weight:600; border-radius:99px; padding:1px 8px; margin-right:4px; }
+  .tag.wait { background:var(--warn-bg); color:var(--warn); } .tag.yes { background:var(--ok-bg); color:var(--ok); }
+  .tag.no { background:var(--bad-bg); color:var(--bad); } .tag.add { background:var(--sky); color:var(--blue-d); } .tag.del { background:var(--blush); color:var(--pink-d); }
+  .search { width:100%; border:1.5px solid var(--line); border-radius:12px; padding:10px 12px; font-size:16px; margin:8px 0; }
+  .step.min input { width:64px; }
+  .unit { font-size:11px; color:var(--muted); text-align:center; margin-top:2px; }
 </style>
 </head>
 <body>
 <header><div class="top">
   <div class="hello" id="hello"><span>บันทึกงาน P4P</span><b>สวัสดีค่ะ 🌷</b></div>
-</div></header>
+</div><div class="nav" id="nav" hidden></div></header>
 <main id="app"><div class="loading"><div class="blob"></div>กำลังเปิดระบบ...</div></main>
 <div class="savebar" id="savebar" hidden></div>
 <div id="toast"></div>
@@ -120,7 +139,7 @@ const CONFIG = {
   // LIFF ของระบบ P4P (สร้างใหม่ใน channel เดียวกับระบบส่งยอด)
   LIFF_ID: '2012074647-Nag6Jhkj',
   // URL เว็บแอปของ Apps Script "ระบบ P4P (หลังบ้าน)" (ลงท้ายด้วย /exec)
-  API_URL: 'https://script.google.com/macros/s/AKfycbyWrWNGWNZcJYhggM8-92oQSU0Y6Y8PTpu2tshLevTc9Vxno223RznpfcN9e8RxdFgNtg/exec'
+  API_URL: 'https://script.google.com/macros/s/AKfycbz6tFg8Fg_E6EhWahKVerefU0xKQR_ITXy9I3TMGWDiy8FTaifyJU122NRlK4eDdPUWMw/exec'
 };
 const TH_MONTH = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
 const TH_DOW = ['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.'];
@@ -130,7 +149,7 @@ const STATUS = [
   { k:'off', t:'วันหยุดพิเศษ' }
 ];
 const CODE2ST = { 'ลป':'sick', 'ลก':'personal', 'Vac':'vac' };
-const S = { idToken:'', today:'', ym:'', sel:0, M:null, edit:null, dirty:false, busy:false, sheetUrl:'' };
+const S = { idToken:'', today:'', ym:'', sel:0, M:null, edit:null, dirty:false, busy:false, me:null, pending:0, page:'log', folderUrl:'', A:null, filter:'' };
 const $app = document.getElementById('app');
 const $save = document.getElementById('savebar');
 
@@ -175,16 +194,127 @@ async function main() {
     if (!liff.isLoggedIn()) { liff.login({ redirectUri: location.href }); return; }
     S.idToken = liff.getIDToken();
     const d = await api('init');
-    S.today = d.today; S.sheetUrl = d.sheetUrl;
-    document.getElementById('hello').replaceChildren(h('span', {}, 'บันทึกงาน P4P'), h('b', {}, 'สวัสดี ' + ((d.me && d.me.name) || '') + ' 🌷'));
-    S.ym = ymOf(S.today); S.sel = Number(S.today.slice(8, 10));
-    await loadMonth();
-  } catch (e) {
-    $app.replaceChildren(h('div', { class: 'card', style: 'text-align:center' },
-      h('div', { style: 'font-size:42px' }, '😿'), h('h2', {}, 'เปิดระบบไม่สำเร็จ'),
-      h('p', { class: 'muted' }, e.message), h('p', { class: 'sm muted' }, 'ลองปิดหน้านี้แล้วเปิดใหม่จากเมนูใน LINE')));
-  }
+    S.today = d.today;
+    if (!d.registered) return drawRegister(d);
+    afterLogin(d);
+  } catch (e) { fail(e); }
 }
+function fail(e) {
+  $app.replaceChildren(h('div', { class: 'card', style: 'text-align:center' },
+    h('div', { style: 'font-size:42px' }, '😿'), h('h2', {}, 'เปิดระบบไม่สำเร็จ'),
+    h('p', { class: 'muted' }, e.message), h('p', { class: 'sm muted' }, 'ลองปิดหน้านี้แล้วเปิดใหม่จากเมนูใน LINE')));
+}
+function afterLogin(d) {
+  S.me = d.me; S.pending = d.pending || 0; S.folderUrl = d.folderUrl || '';
+  document.getElementById('hello').replaceChildren(h('span', {}, 'บันทึกงาน P4P · ' + S.me.pos), h('b', {}, 'สวัสดี ' + S.me.tab + ' 🌷'));
+  S.ym = ymOf(S.today); S.sel = Number(S.today.slice(8, 10));
+  const q = new URLSearchParams(location.search);
+  const want = q.get('page') || (q.get('liff.state') || '').replace(/.*page=/, '');
+  goPage(want === 'approve' && S.me.role === 'หัวหน้า' ? 'approve' : 'log');
+}
+function drawNav() {
+  const nav = document.getElementById('nav');
+  const items = [['log', '📝 บันทึก'], ['acts', '📋 กิจกรรม']];
+  if (S.me.role === 'หัวหน้า') items.push(['approve', '✅ อนุมัติ']);
+  nav.replaceChildren(...items.map(([k, t]) => h('button', { class: S.page === k ? 'on' : '', onclick: () => goPage(k) }, t,
+    k === 'approve' && S.pending ? h('span', { class: 'dot' }, S.pending) : null)));
+  nav.hidden = false;
+}
+async function goPage(k) {
+  if (S.busy) return;
+  if (S.dirty) { const ok = await save(); if (!ok) return; }
+  S.page = k; drawNav(); $save.hidden = true;
+  try {
+    if (k === 'log') await loadMonth();
+    else if (k === 'acts') await loadActs();
+    else await loadApprovals();
+  } catch (e) { fail(e); }
+}
+
+// ---------- ลงทะเบียน ----------
+function drawRegister(d) {
+  document.getElementById('hello').replaceChildren(h('span', {}, 'บันทึกงาน P4P'), h('b', {}, 'ลงทะเบียนครั้งแรก 🌷'));
+  const sel = h('select', { id: 'who' }, h('option', { value: '' }, '— เลือกชื่อของคุณ —'), d.choices.map(c => h('option', { value: c.id }, c.label)));
+  const code = h('input', { id: 'code', type: 'text', autocomplete: 'off', placeholder: 'รหัสจากผู้ดูแลระบบ' });
+  const btn = h('button', { class: 'btn btn-main', onclick: async () => {
+    if (!sel.value) return toast('เลือกชื่อของคุณก่อน', true);
+    if (!code.value.trim()) return toast('ใส่รหัสลงทะเบียน', true);
+    btn.disabled = true; btn.textContent = 'กำลังลงทะเบียน...';
+    try { const r = await api('register', { staffId: sel.value, code: code.value.trim() }); toast('ลงทะเบียนแล้ว ✓'); afterLogin(r); }
+    catch (e) { toast(e.message, true, 4500); btn.disabled = false; btn.textContent = 'ลงทะเบียน'; }
+  } }, 'ลงทะเบียน');
+  $app.replaceChildren(h('div', { class: 'card' },
+    h('h3', {}, 'ผูกบัญชี LINE กับชื่อของคุณ'),
+    h('p', { class: 'sm muted' }, 'ทำครั้งเดียว หลังจากนี้เปิดเมนูก็เข้าแบบฟอร์มของคุณได้ทันที'),
+    h('div', { class: 'field' }, h('label', { for: 'who' }, 'ชื่อ–สกุล'), sel),
+    h('div', { class: 'field' }, h('label', { for: 'code' }, 'รหัสลงทะเบียนของหน่วยงาน'), code),
+    btn,
+    d.choices.length ? null : h('p', { class: 'sm muted' }, 'ไม่มีรายชื่อที่ยังไม่ลงทะเบียน ติดต่อผู้ดูแลระบบ')));
+}
+
+// ---------- กิจกรรมของฉัน ----------
+async function loadActs() {
+  $app.replaceChildren(h('div', { class: 'loading' }, h('div', { class: 'blob' }), 'กำลังโหลดกิจกรรม...'));
+  S.A = await api('myActs'); drawActs();
+}
+const ST_TAG = { 'รออนุมัติ': 'wait', 'อนุมัติ': 'yes', 'ไม่อนุมัติ': 'no', 'ยกเลิก': 'no' };
+function drawActs() {
+  const A = S.A, pend = new Set(A.pendingIds);
+  const ask = async (kind, a, btn) => {
+    btn.disabled = true;
+    try { S.A = await api('request', { kind, actId: a.id }); toast(A.autoApprove ? (kind === 'add' ? 'เพิ่มแล้ว ✓' : 'ลบแล้ว ✓') : 'ส่งคำขอให้หัวหน้าแล้ว'); drawActs(); }
+    catch (e) { toast(e.message, true, 4500); btn.disabled = false; }
+  };
+  const mine = h('div', { class: 'card' }, h('h3', {}, 'กิจกรรมของฉัน (' + A.mine.length + ')'),
+    h('p', { class: 'sm muted' }, A.autoApprove ? 'คุณเป็นหัวหน้า เพิ่ม/ลบได้ทันทีโดยไม่ต้องรออนุมัติ' : 'เพิ่มหรือลบได้ แต่ต้องรอหัวหน้าอนุมัติก่อน'),
+    A.mine.map(a => {
+      const b = h('button', { class: 'mini del' }, pend.has(a.id) ? 'รออนุมัติ' : 'ขอลบ');
+      if (pend.has(a.id)) b.disabled = true; else b.onclick = () => { if (b.dataset.sure) ask('remove', a, b); else { b.dataset.sure = 1; b.textContent = 'ยืนยันลบ?'; } };
+      return h('div', { class: 'li' }, h('div', {}, h('div', { class: 'nm' }, a.name), h('div', { class: 'meta' }, a.unit + ' · ' + a.std + ' นาที × ' + a.weight + (a.routine ? ' · ประจำ' : ''))), b);
+    }));
+  const q = h('input', { class: 'search', type: 'search', placeholder: 'ค้นหากิจกรรมในคลัง...', value: S.filter });
+  const list = h('div');
+  const paint = () => {
+    const f = q.value.trim(); S.filter = f;
+    const rows = A.catalog.filter(c => !f || c.name.includes(f));
+    list.replaceChildren(...(rows.length ? rows.slice(0, 60).map(c => {
+      const b = h('button', { class: 'mini add' }, pend.has(c.id) ? 'รออนุมัติ' : (A.autoApprove ? '+ เพิ่ม' : '+ ขอเพิ่ม'));
+      if (pend.has(c.id)) b.disabled = true; else b.onclick = () => ask('add', c, b);
+      return h('div', { class: 'li' }, h('div', {}, h('div', { class: 'nm' }, c.name), h('div', { class: 'meta' }, c.unit + ' · ' + c.std + ' นาที × ' + c.weight)), b);
+    }) : [h('div', { class: 'empty' }, 'ไม่พบกิจกรรม')]));
+  };
+  q.addEventListener('input', paint); paint();
+  const cat = h('div', { class: 'card' }, h('h3', {}, 'คลังกิจกรรม ' + S.me.group), h('p', { class: 'sm muted' }, 'เวลามาตรฐานและค่าน้ำหนักเป็นค่ากลางของกลุ่ม'), q, list);
+  const reqs = A.requests.length ? h('div', { class: 'card' }, h('h3', {}, 'คำขอล่าสุด'), A.requests.map(r => {
+    const cancel = r.status === 'รออนุมัติ' ? h('button', { class: 'mini no', onclick: async ev => { ev.currentTarget.disabled = true;
+      try { S.A = await api('cancelRequest', { reqId: r.id }); toast('ยกเลิกคำขอแล้ว'); drawActs(); } catch (e) { toast(e.message, true); } } }, 'ยกเลิก') : h('span');
+    return h('div', { class: 'li' }, h('div', {}, h('div', {}, h('span', { class: 'tag ' + (r.kind === 'เพิ่ม' ? 'add' : 'del') }, r.kind),
+      h('span', { class: 'tag ' + (ST_TAG[r.status] || 'wait') }, r.status)), h('div', { class: 'nm' }, r.actName), h('div', { class: 'meta' }, r.at + (r.note ? ' · ' + r.note : ''))), cancel);
+  })) : null;
+  $app.replaceChildren(reqs || h('span'), mine, cat);
+}
+
+// ---------- อนุมัติ (หัวหน้า) ----------
+async function loadApprovals() {
+  $app.replaceChildren(h('div', { class: 'loading' }, h('div', { class: 'blob' }), 'กำลังโหลดคำขอ...'));
+  drawApprovals(await api('approvals'));
+}
+function drawApprovals(list) {
+  S.pending = list.length; drawNav();
+  const decide = async (r, ok, row) => {
+    row.querySelectorAll('button').forEach(b => b.disabled = true);
+    try { drawApprovals(await api('decide', { reqId: r.id, approve: ok })); toast(ok ? 'อนุมัติแล้ว ✓' : 'ไม่อนุมัติแล้ว'); }
+    catch (e) { toast(e.message, true, 4500); row.querySelectorAll('button').forEach(b => b.disabled = false); }
+  };
+  $app.replaceChildren(h('div', { class: 'card' }, h('h3', {}, 'คำขอเปลี่ยนกิจกรรม (' + list.length + ')'),
+    list.length ? list.map(r => { const row = h('div', { class: 'li' });
+      row.append(h('div', {}, h('div', {}, h('span', { class: 'tag ' + (r.kind === 'เพิ่ม' ? 'add' : 'del') }, 'ขอ' + r.kind), h('b', {}, r.who)),
+        h('div', { class: 'nm' }, r.actName), h('div', { class: 'meta' }, (r.unit || '') + ' · ' + r.std + ' นาที × ' + r.weight + ' · ' + r.at)),
+        h('div', { style: 'display:flex;flex-direction:column;gap:6px' }, h('button', { class: 'mini ok', onclick: () => decide(r, true, row) }, 'อนุมัติ'),
+          h('button', { class: 'mini no', onclick: () => decide(r, false, row) }, 'ไม่อนุมัติ')));
+      return row; }) : h('div', { class: 'empty' }, 'ไม่มีคำขอค้างอยู่ 🎉')));
+}
+
 async function loadMonth() {
   $app.replaceChildren(h('div', { class: 'loading' }, h('div', { class: 'blob' }), 'กำลังโหลดเดือนนี้...'));
   $save.hidden = true;
@@ -251,7 +381,10 @@ function summary() {
       todo ? h('span', { class: 'pill' }, 'ยังไม่กรอก ' + todo + ' วัน') : null),
     h('div', { class: 'tools' },
       h('button', { onclick: exportXlsx }, '⬇️ ไฟล์ Excel'),
-      h('button', { onclick: () => openExt(S.sheetUrl + '#gid=' + S.M.gid) }, '📄 เปิดชีต')));
+      h('button', { onclick: () => openExt(S.M.fileUrl + '#gid=' + S.M.gid) }, '📄 เปิดชีต')),
+    S.me.role !== 'บุคลากร' ? h('div', { class: 'tools' },
+      h('button', { onclick: ev => exportXlsx(ev, true) }, '⬇️ ไฟล์ทั้งหน่วยงาน'),
+      h('button', { onclick: () => openExt(S.folderUrl) }, '📁 โฟลเดอร์ P4P')) : null);
   return box;
 }
 function calendar() {
@@ -299,14 +432,16 @@ function dayCard() {
   }
   card.append(h('div', { class: 'meter', id: 'meter' }));
   const row = a => {
+    const mins = a.kind === 'เวลาจริง', st = mins ? 15 : 1;
     const inp = h('input', { type: 'text', inputmode: 'numeric', autocomplete: 'off', value: E.counts[a.row], 'aria-label': a.name });
-    const box = h('div', { class: 'step' + (E.counts[a.row] > 0 ? ' has' : '') },
-      h('button', { 'aria-label': 'ลด', onclick: () => setCount(a, E.counts[a.row] - 1, inp, box) }, '−'), inp,
-      h('button', { 'aria-label': 'เพิ่ม', onclick: () => setCount(a, E.counts[a.row] + 1, inp, box) }, '+'));
+    const box = h('div', { class: 'step' + (mins ? ' min' : '') + (E.counts[a.row] > 0 ? ' has' : '') },
+      h('button', { 'aria-label': 'ลด', onclick: () => setCount(a, E.counts[a.row] - st, inp, box) }, '−'), inp,
+      h('button', { 'aria-label': 'เพิ่ม', onclick: () => setCount(a, E.counts[a.row] + st, inp, box) }, '+'));
     inp.addEventListener('focus', () => inp.select());
     inp.addEventListener('input', () => { const c = digits(inp.value); if (c !== inp.value) inp.value = c; setCount(a, Number(c || 0), null, box); });
-    return h('div', { class: 'act' }, h('div', {}, h('div', { class: 'nm' }, a.name.split('\n')[0]), h('div', { class: 'meta' }, a.unit + ' · ' + a.std + ' นาที × ' + a.weight)), box);
+    return h('div', { class: 'act' }, h('div', {}, h('div', { class: 'nm' }, a.name.split('\n')[0]), h('div', { class: 'meta' }, mins ? 'ใส่จำนวนนาทีจริง × ' + a.weight : a.unit + ' · ' + a.std + ' นาที × ' + a.weight)), h('div', {}, box, mins ? h('div', { class: 'unit' }, 'นาที') : null));
   };
+  if (!S.M.acts.length) { card.append(h('div', { class: 'empty' }, 'ยังไม่มีกิจกรรม เพิ่มได้ที่เมนู "กิจกรรมของฉัน"')); setTimeout(paintMeter); return card; }
   const counted = S.M.acts.filter(a => !a.routine), routine = S.M.acts.filter(a => a.routine);
   if (counted.length) card.append(h('div', { class: 'grp' }, 'นับจำนวนวันนี้'), ...counted.map(row));
   if (routine.length) card.append(h('div', { class: 'grp' }, 'กิจกรรมประจำ (ใส่ 1 ให้อัตโนมัติ)'), ...routine.map(row));
@@ -371,11 +506,11 @@ async function save() {
   }
 }
 function openExt(u) { try { liff.openWindow({ url: u, external: true }); } catch (_) { window.open(u, '_blank'); } }
-async function exportXlsx(ev) {
+async function exportXlsx(ev, all) {
   const b = ev.currentTarget; b.disabled = true; const t = b.textContent; b.textContent = 'กำลังสร้างไฟล์...';
   try {
     if (S.dirty) await save();
-    const r = await api('export', { ym: S.ym });
+    const r = await api('export', { ym: S.ym, all: !!all });
     toast('สร้างไฟล์ ' + r.name + ' ใน Google Drive แล้ว');
     openExt(r.url);
   } catch (e) { toast(e.message, true, 4500); }

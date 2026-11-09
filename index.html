@@ -180,7 +180,7 @@ function toMin(t) { const m = String(t || '').match(/^(\d{1,2})[:.](\d{2})$/); r
 function outToTime(s) { const m = String(s || '').match(/^(\d{1,2})[:.](\d{1,2})$/); return m ? m[1].padStart(2, '0') + ':' + m[2].padEnd(2, '0') : ''; }
 
 async function api(action, data) {
-  const res = await fetch(CONFIG.API_URL, { method: 'POST', body: JSON.stringify(Object.assign({ action, idToken: S.idToken }, data || {})) });
+  const res = await fetch(CONFIG.API_URL, { method: 'POST', keepalive: action === 'saveDay', body: JSON.stringify(Object.assign({ action, idToken: S.idToken }, data || {})) });
   const j = await res.json();
   if (!j.ok) throw new Error(j.error);
   return j.data;
@@ -193,12 +193,26 @@ async function main() {
     await liff.init({ liffId: CONFIG.LIFF_ID });
     if (!liff.isLoggedIn()) { liff.login({ redirectUri: location.href }); return; }
     S.idToken = liff.getIDToken();
-    const d = await api('init');
+    try { S.ck = 'p4p:' + ((liff.getDecodedIDToken() || {}).sub || ''); } catch (_) { S.ck = 'p4p:'; }
+    // ขอข้อมูลผู้ใช้และข้อมูลเดือนนี้พร้อมกัน และแสดงข้อมูลที่จำไว้ครั้งก่อนทันทีระหว่างรอ
+    const now = new Date(), ym0 = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+    const pInit = api('init');
+    S.preM = { ym: ym0, p: api('month', { ym: ym0 }).catch(() => null) };
+    const c = readCache();
+    if (c && c.d && c.d.registered && c.M && c.M.ym === ym0) {
+      S.today = ym0 + '-' + String(now.getDate()).padStart(2, '0');
+      S.cachedM = c.M; afterLogin(c.d);
+    }
+    const d = await pInit;
     S.today = d.today;
-    if (!d.registered) return drawRegister(d);
-    afterLogin(d);
+    if (!d.registered) { S.preM = null; return drawRegister(d); }
+    S.initD = d;
+    if (S.me) { S.me = d.me; S.pending = d.pending || 0; S.folderUrl = d.folderUrl || ''; if (S.page === 'log' && !S.dirty) draw(); drawNav(); }
+    else afterLogin(d);
   } catch (e) { fail(e); }
 }
+function readCache() { try { return JSON.parse(localStorage.getItem(S.ck) || 'null'); } catch (_) { return null; } }
+function writeCache() { try { if (S.initD && S.M && !S.M.missing && S.ym === ymOf(S.today)) localStorage.setItem(S.ck, JSON.stringify({ d: S.initD, M: S.M })); } catch (_) {} }
 function fail(e) {
   $app.replaceChildren(h('div', { class: 'card', style: 'text-align:center' },
     h('div', { style: 'font-size:42px' }, '😿'), h('h2', {}, 'เปิดระบบไม่สำเร็จ'),
@@ -316,11 +330,17 @@ function drawApprovals(list) {
 }
 
 async function loadMonth() {
-  $app.replaceChildren(h('div', { class: 'loading' }, h('div', { class: 'blob' }), 'กำลังโหลดเดือนนี้...'));
-  $save.hidden = true;
-  S.M = await api('month', { ym: S.ym });
-  if (!S.M.missing) { const n = S.M.days.length; if (S.sel > n) S.sel = n; startEdit(); }
-  draw();
+  const ym = S.ym;
+  const show = M => { S.M = M; if (!S.M.missing) { const n = S.M.days.length; if (S.sel > n) S.sel = n; startEdit(); } draw(); };
+  if (S.cachedM && S.cachedM.ym === ym) { show(S.cachedM); S.cachedM = null; }
+  else if (S.M && S.M.ym === ym && !S.M.missing) draw();
+  else { $app.replaceChildren(h('div', { class: 'loading' }, h('div', { class: 'blob' }), 'กำลังโหลดเดือนนี้...')); $save.hidden = true; }
+  let M = null;
+  if (S.preM && S.preM.ym === ym) { M = await S.preM.p; S.preM = null; }
+  if (!M) M = await api('month', { ym });
+  if (S.ym !== ym || S.page !== 'log') return;
+  if (S.dirty || S.pend) { if (!S.M || S.M.ym !== ym) show(M); return; } // กำลังแก้อยู่ ไม่ทับของผู้ใช้
+  show(M); writeCache();
 }
 
 // ---------- คำนวณ ----------
@@ -457,7 +477,7 @@ function paintMeter() {
 function drawSave() {
   const day = S.M && !S.M.missing ? dayOf(S.sel) : null;
   if (!day || (isWeekend(day) && !CODE2ST[day.code])) { $save.hidden = true; return; }
-  const label = S.busy ? 'กำลังบันทึก...' : (S.dirty ? 'บันทึกวันที่ ' + S.sel : (day.entered ? 'บันทึกแล้ว ✓' : 'บันทึกวันที่ ' + S.sel));
+  const label = S.dirty ? 'บันทึกวันที่ ' + S.sel : (S.pend ? 'กำลังส่งข้อมูล…' : (day.entered ? 'บันทึกแล้ว ✓' : 'บันทึกวันที่ ' + S.sel));
   const b = h('button', { class: 'btn ' + (S.dirty || !day.entered ? 'btn-main' : 'btn-soft'), onclick: save }, label);
   if (S.busy) b.disabled = true;
   $save.replaceChildren(b); $save.hidden = false;
@@ -491,25 +511,47 @@ async function go(ym) {
   S.sel = ym === ymOf(S.today) ? Number(S.today.slice(8, 10)) : 1;
   try { await loadMonth(); } catch (e) { toast(e.message, true, 4000); }
 }
-async function save() {
-  if (S.busy) return false;
-  S.busy = true; drawSave();
-  try {
-    const E = S.edit;
-    S.M = await api('saveDay', { ym: S.ym, day: S.sel, status: E.st, out: E.st === 'work' ? E.out : '', counts: E.counts });
-    startEdit(); S.busy = false; draw();
-    toast('บันทึกวันที่ ' + S.sel + ' แล้ว ✓');
-    return true;
-  } catch (e) {
-    S.busy = false; drawSave(); toast(e.message, true, 4500);
-    return false;
-  }
+// บันทึกแบบไม่ต้องรอ: อัปเดตหน้าจอทันที แล้วส่งข้อมูลไปเบื้องหลังตามลำดับ
+function applyLocal(day, E) {
+  const work = isWorkSt(E.st), ratio = Number(S.me && S.me.ratio) || 0;
+  const pts = c => S.M.acts.reduce((s, a) => s + (Number(c[a.row]) || 0) * a.std * a.weight, 0);
+  const before = pts(day.counts);
+  day.code = ({ sick: 'ลป', personal: 'ลก', vac: 'Vac' })[E.st] || '';
+  day.out = E.st === 'work' && E.out ? E.out.replace(':', '.') : '';
+  day.clinic = E.st === 'clinic'; day.hol = E.st === 'off';
+  day.status = day.code ? 'ลา' : (work ? 'ทำงาน' : 'หยุด');
+  const c = {}; S.M.acts.forEach(a => { c[a.row] = work ? (Number(E.counts[a.row]) || 0) : null; });
+  day.counts = c; day.total = work ? minsOf(c) : 0; day.cap = work ? capOf(E.st, E.out) : null; day.entered = true;
+  S.M.points += (pts(c) - before) * ratio;
+}
+function save() {
+  const E = S.edit, d = S.sel, ym = S.ym;
+  const payload = { ym, day: d, status: E.st, out: E.st === 'work' ? E.out : '', counts: Object.assign({}, E.counts) };
+  const keep = { st: E.st, out: E.out, counts: Object.assign({}, E.counts) };
+  applyLocal(dayOf(d), E);
+  startEdit(); draw();
+  toast('บันทึกวันที่ ' + d + ' แล้ว ✓');
+  S.pend = (S.pend || 0) + 1; drawSave();
+  S.q = (S.q || Promise.resolve()).then(async () => {
+    try {
+      const M = await api('saveDay', payload);
+      S.pend--;
+      if (!S.pend && S.ym === ym && !S.dirty) { S.M = M; startEdit(); if (S.page === 'log') draw(); writeCache(); }
+      else drawSave();
+    } catch (e) {
+      S.pend--;
+      toast('วันที่ ' + d + ' ยังไม่ได้บันทึก: ' + e.message + ' · กดบันทึกอีกครั้ง', true, 7000);
+      if (S.ym === ym && S.page === 'log') { S.sel = d; S.edit = keep; S.dirty = true; draw(); }
+    }
+  });
+  return Promise.resolve(true);
 }
 function openExt(u) { try { liff.openWindow({ url: u, external: true }); } catch (_) { window.open(u, '_blank'); } }
 async function exportXlsx(ev, all) {
   const b = ev.currentTarget; b.disabled = true; const t = b.textContent; b.textContent = 'กำลังสร้างไฟล์...';
   try {
     if (S.dirty) await save();
+    await S.q;
     const r = await api('export', { ym: S.ym, all: !!all });
     toast('สร้างไฟล์ ' + r.name + ' ใน Google Drive แล้ว');
     openExt(r.url);

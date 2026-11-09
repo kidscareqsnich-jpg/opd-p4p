@@ -384,7 +384,7 @@ function summary() {
       S.me.role !== 'บุคลากร' ? h('button', { onclick: () => openExt(S.M.fileUrl + '#gid=' + S.M.gid) }, '📄 เปิดชีต') : null),
     S.me.role !== 'บุคลากร' ? h('div', { class: 'tools' },
       h('button', { onclick: ev => exportXlsx(ev, true) }, '⬇️ ไฟล์ทั้งหน่วยงาน'),
-      h('button', { onclick: () => openExt(S.folderUrl) }, '📁 โฟลเดอร์ P4P')) : null);
+      h('button', { onclick: () => openExt(S.folderUrl) }, '📁 โฟลเดอร์ P4P')) : '');
   return box;
 }
 function calendar() {

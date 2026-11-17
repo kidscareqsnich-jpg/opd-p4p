@@ -76,6 +76,8 @@
   .cell.near { background:var(--warn-bg); border-color:transparent; } .cell.near small { color:var(--warn); }
   .cell.over { background:var(--bad-bg); border-color:transparent; } .cell.over small { color:var(--bad); font-weight:600; }
   .cell.leave { background:var(--lav); border-color:transparent; } .cell.leave small { color:var(--lav-d); }
+  .cell.half { box-shadow:inset 0 -4px 0 var(--lav-d); }
+  .halfsel { display:flex; gap:6px; margin:-4px 0 12px; } .halfsel .chip { flex:1; text-align:center; }
   .cell.sel { outline:2.5px solid var(--blue-d); outline-offset:1px; }
   .cell.today b { color:var(--pink-d); }
   .legend { display:flex; flex-wrap:wrap; gap:10px; font-size:11px; color:var(--muted); margin-top:10px; }
@@ -148,7 +150,11 @@ const STATUS = [
   { k:'sick', t:'ลาป่วย', code:'ลป' }, { k:'personal', t:'ลากิจ', code:'ลก' }, { k:'vac', t:'ลาพักผ่อน', code:'Vac' },
   { k:'off', t:'วันหยุดพิเศษ' }
 ];
-const CODE2ST = { 'ลป':'sick', 'ลก':'personal', 'Vac':'vac' };
+const CODE2ST = { 'ลป':'sick', 'ลก':'personal', 'Vac':'vac', 'ลป เช้า':'sick_am', 'ลป บ่าย':'sick_pm', 'ลก เช้า':'personal_am', 'ลก บ่าย':'personal_pm', 'Vac เช้า':'vac_am', 'Vac บ่าย':'vac_pm' };
+const ST2CODE = Object.fromEntries(Object.entries(CODE2ST).map(([c, k]) => [k, c]));
+const isHalf = st => /_(am|pm)$/.test(st || '');
+const baseSt = st => String(st || '').replace(/_(am|pm)$/, '');
+const isFullLeave = code => !!CODE2ST[code] && !isHalf(CODE2ST[code]);
 const S = { idToken:'', today:'', ym:'', sel:0, M:null, edit:null, dirty:false, busy:false, me:null, pending:0, page:'log', folderUrl:'', A:null, filter:'' };
 const $app = document.getElementById('app');
 const $save = document.getElementById('savebar');
@@ -346,10 +352,11 @@ async function loadMonth() {
 // ---------- คำนวณ ----------
 function dayOf(d) { return S.M.days[d - 1]; }
 function isWeekend(day) { return day.dow === 'ส.' || day.dow === 'อา.'; }
-function isWorkSt(st) { return st === 'work' || st === 'clinic'; }
+function isWorkSt(st) { return st === 'work' || st === 'clinic' || isHalf(st); }
 function capOf(st, out) {
   const c = S.M.cfg;
   if (st === 'clinic') return c.capBase;
+  if (isHalf(st)) return Math.round(c.capBase / 2);
   const m = toMin(out);
   if (m == null) return c.capBase;
   return Math.min(c.capMax, c.capBase + 60 * Math.max(0, Math.floor(m / 60) - c.endHour));
@@ -415,12 +422,12 @@ function calendar() {
   const isCur = S.ym === ymOf(S.today), tday = Number(S.today.slice(8, 10));
   S.M.days.forEach(day => {
     let cls = 'cell', lab = '';
-    if (CODE2ST[day.code]) { cls += ' leave'; lab = day.code; }
+    if (isFullLeave(day.code)) { cls += ' leave'; lab = day.code; }
     else if (day.status === 'หยุด') { cls += ' off'; lab = day.hol ? 'หยุด' : ''; }
     else if (day.status === 'ยังไม่ถึง') { cls += ' future'; }
     else if (day.status === 'ทำงาน') {
       if (!day.entered) { cls += ' todo'; lab = '—'; }
-      else { cls += ' ' + level(day.total, day.cap); lab = day.total; }
+      else { cls += ' ' + level(day.total, day.cap) + (CODE2ST[day.code] ? ' half' : ''); lab = day.total; }
     }
     if (isCur && day.d === tday) cls += ' today';
     if (day.d === S.sel) cls += ' sel';
@@ -438,13 +445,17 @@ function dayCard() {
     card.append(h('div', { class: 'empty' }, 'เสาร์–อาทิตย์ ระบบนับเป็นวันหยุด'));
     return card;
   }
+  const b0 = baseSt(E.st), leaveDef = STATUS.find(s => s.k === b0 && s.code);
   card.append(h('div', { class: 'chips' }, STATUS.map(s =>
-    h('button', { class: 'chip' + (E.st === s.k ? ' on' : ''), onclick: () => setStatus(s.k) }, s.t + (s.code ? ' (' + s.code + ')' : '')))));
+    h('button', { class: 'chip' + (b0 === s.k ? ' on' : ''), onclick: () => setStatus(s.code && isHalf(E.st) && b0 !== s.k ? s.k + E.st.slice(-3) : s.k) }, s.t + (s.code ? ' (' + s.code + ')' : '')))));
+  if (leaveDef) card.append(h('div', { class: 'halfsel' }, [['', 'ทั้งวัน'], ['_am', 'ครึ่งเช้า'], ['_pm', 'ครึ่งบ่าย']].map(([x, t]) =>
+    h('button', { class: 'chip' + (E.st === b0 + x ? ' on' : ''), onclick: () => setStatus(b0 + x) }, t))));
   if (!isWorkSt(E.st)) {
-    card.append(h('div', { class: 'empty' }, E.st === 'off' ? 'วันหยุดพิเศษ ไม่นับภาระงาน' : 'ใส่รหัส ' + STATUS.find(s => s.k === E.st).code + ' ลงแบบฟอร์มให้'));
+    card.append(h('div', { class: 'empty' }, E.st === 'off' ? 'วันหยุดพิเศษ ไม่นับภาระงาน' : 'ใส่รหัส ' + ST2CODE[E.st] + ' ลงแบบฟอร์มให้'));
     return card;
   }
-  if (E.st === 'clinic') card.append(h('div', { class: 'outrow' }, 'ต่อคลินิกนอกเวลา · เพดานคงที่ ' + S.M.cfg.capBase + ' นาที'));
+  if (isHalf(E.st)) card.append(h('div', { class: 'outrow' }, 'ลาครึ่งวัน (' + ST2CODE[E.st] + ') · ใส่งานของอีกครึ่งวัน · เพดาน ' + capOf(E.st) + ' นาที'));
+  else if (E.st === 'clinic') card.append(h('div', { class: 'outrow' }, 'ต่อคลินิกนอกเวลา · เพดานคงที่ ' + S.M.cfg.capBase + ' นาที'));
   else {
     const t = h('input', { type: 'time', id: 'outT', value: E.out });
     t.addEventListener('change', () => { E.out = t.value; mark(); paintMeter(); });
@@ -516,10 +527,10 @@ function applyLocal(day, E) {
   const work = isWorkSt(E.st), ratio = Number(S.me && S.me.ratio) || 0;
   const pts = c => S.M.acts.reduce((s, a) => s + (Number(c[a.row]) || 0) * a.std * a.weight, 0);
   const before = pts(day.counts);
-  day.code = ({ sick: 'ลป', personal: 'ลก', vac: 'Vac' })[E.st] || '';
+  day.code = ST2CODE[E.st] || '';
   day.out = E.st === 'work' && E.out ? E.out.replace(':', '.') : '';
   day.clinic = E.st === 'clinic'; day.hol = E.st === 'off';
-  day.status = day.code ? 'ลา' : (work ? 'ทำงาน' : 'หยุด');
+  day.status = work ? 'ทำงาน' : (day.code ? 'ลา' : 'หยุด');
   const c = {}; S.M.acts.forEach(a => { c[a.row] = work ? (Number(E.counts[a.row]) || 0) : null; });
   day.counts = c; day.total = work ? minsOf(c) : 0; day.cap = work ? capOf(E.st, E.out) : null; day.entered = true;
   S.M.points += (pts(c) - before) * ratio;
